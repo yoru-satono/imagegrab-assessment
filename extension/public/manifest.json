@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "图拾 · ImageGrab",
+  "version": "1.0.0",
+  "description": "提取当前页面的图片，筛选预览并下载为 PNG。",
+  "permissions": ["activeTab", "scripting", "storage", "downloads"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "action": {"default_popup": "popup.html", "default_title": "图拾：获取页面图片"},
+  "background": {"service_worker": "background.js"}
+}
