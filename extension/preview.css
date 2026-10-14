@@ -1,0 +1,16 @@
+.preview-button{margin:0 12px 12px;width:calc(100% - 24px);min-height:44px}
+button:focus-visible{outline:3px solid #42a68a;outline-offset:3px}
+.lightbox{border:0;padding:0;background:transparent;color:#203b36;width:min(1100px,calc(100% - 48px));max-width:none;max-height:calc(100dvh - 48px);overflow:visible}
+.lightbox::backdrop{background:rgba(12,29,25,.82)}
+.preview-panel{background:#f5f8f7;border-radius:12px;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100dvh - 48px);box-shadow:0 24px 80px #0005}
+.preview-header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:white}
+.preview-header h2{font-size:18px;margin:0 0 5px}
+.preview-header p{font-size:13px;color:#617a70;margin:0}
+.preview-close{min-width:44px;min-height:44px;padding:8px}
+.preview-stage{display:flex;align-items:center;justify-content:center;min-height:0;flex:1;background:#e7eeea;padding:16px}
+.preview-stage img{display:block;max-width:100%;max-height:calc(100dvh - 240px);object-fit:contain;width:auto;height:auto}
+.preview-stage p{text-align:center;padding:40px 16px}
+.preview-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;background:white}
+.preview-controls button{min-height:44px}
+.preview-controls span{font-size:12px;color:#617a70}
+@media(max-width:600px){.lightbox{width:calc(100% - 16px);max-height:calc(100dvh - 24px)}.preview-panel{max-height:calc(100dvh - 24px)}.preview-header{padding:12px}.preview-stage{padding:8px}.preview-stage img{max-height:calc(100dvh - 210px)}.preview-controls{padding:12px;gap:8px}.preview-controls span{display:none}.preview-controls button{flex:1}}

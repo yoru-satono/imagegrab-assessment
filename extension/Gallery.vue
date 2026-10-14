@@ -1,9 +1,49 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { Images, Download, Check, ArrowUpRight, RotateCcw, Search, ShieldCheck, ImageOff } from '@lucide/vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { Images, Download, Check, ArrowUpRight, RotateCcw, Search, ShieldCheck, ImageOff, ZoomIn, X, ChevronLeft, ChevronRight } from '@lucide/vue'
 const entries = ref([]), selected = ref(new Set()), minimum = ref(100), search = ref(''), loading = ref(true), busy = ref(false), done = ref(0), status = ref(''), failures = ref([]), source = ref(''), title = ref('')
 const visible = computed(() => entries.value.filter(item => !item.failed && item.width >= minimum.value && item.height >= minimum.value && item.url.toLowerCase().includes(search.value.toLowerCase())))
 const chosen = computed(() => visible.value.filter(item => selected.value.has(item.url)))
+const preview = ref(null), dialog = ref(null), previewFailed = ref(false)
+const previewIndex = computed(() => visible.value.findIndex(item => item.url === preview.value?.url))
+let opener, previousOverflow
+async function openPreview(item, event) {
+  opener = event.currentTarget
+  preview.value = item; previewFailed.value = false
+  previousOverflow = document.body.style.overflow
+  document.body.style.overflow = 'hidden'
+  await nextTick()
+  dialog.value.showModal()
+}
+function closePreview() {
+  dialog.value?.close()
+  preview.value = null
+  document.body.style.overflow = previousOverflow ?? ''
+  opener?.focus()
+}
+function movePreview(direction) {
+  if (visible.value.length < 2) return
+  preview.value = visible.value[(previewIndex.value + direction + visible.value.length) % visible.value.length]
+  previewFailed.value = false
+}
+function previewKey(event) {
+  if (event.key === 'Tab') {
+    const buttons = [...dialog.value.querySelectorAll('button:not(:disabled)')]
+    const first = buttons[0], last = buttons.at(-1)
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault(); last?.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault(); first?.focus()
+    }
+    return
+  }
+  if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    movePreview(event.key === 'ArrowLeft' ? -1 : 1)
+  }
+}
+onBeforeUnmount(() => { if (preview.value) document.body.style.overflow = previousOverflow ?? '' })
 function toggle(url) { const next = new Set(selected.value); next.has(url) ? next.delete(url) : next.add(url); selected.value = next }
 function all() { selected.value = new Set(visible.value.map(item => item.url)) }
 function invert() { selected.value = new Set(visible.value.filter(item => !selected.value.has(item.url)).map(item => item.url)) }
@@ -49,7 +89,14 @@ async function download() {
     <div class="toolbar"><div class="selection"><button @click="all" :disabled="busy||loading"><Check :size="16"/>全选</button><button @click="invert" :disabled="busy||loading"><RotateCcw :size="16"/>反选</button><span>已选 <b>{{chosen.length}}</b> 张</span></div><div class="filters"><label class="search"><Search :size="16"/><input aria-label="搜索图片地址" v-model="search" placeholder="搜索图片地址" :disabled="busy"/></label><select v-model.number="minimum" aria-label="最小图片尺寸" :disabled="busy"><option :value="100">最小 100 × 100</option><option :value="300">最小 300 × 300</option><option :value="600">最小 600 × 600</option></select><button class="primary" @click="download" :disabled="busy||!chosen.length"><Download :size="17"/>{{busy?`处理中 ${done}/${chosen.length}`:`下载选中 (${chosen.length})`}}</button></div></div>
     <p class="feedback" role="status" v-if="status">{{status}}</p><ul class="errors" v-if="failures.length"><li v-for="failure in failures" :key="failure">{{failure}}</li></ul>
     <div class="empty" v-if="loading">正在加载图片…</div><div class="empty" v-else-if="!visible.length"><ImageOff :size="34"/><h2>没有符合条件的图片</h2><p>调整尺寸或搜索条件，也可返回原网页加载更多图片。</p></div>
-    <div class="grid" v-else><article v-for="(item,index) in visible" :key="item.url" :class="{selected:selected.has(item.url)}"><label><div class="image-wrap"><img :src="item.url" :alt="`页面图片 ${index+1}`"/><input type="checkbox" :checked="selected.has(item.url)" @change="toggle(item.url)" :disabled="busy" :aria-label="`选择图片 ${index+1}`"/><span class="number">{{String(index+1).padStart(2,'0')}}</span></div><div class="meta"><strong>图片 {{String(index+1).padStart(2,'0')}}</strong><span>{{item.width}} × {{item.height}}</span></div></label></article></div>
+    <div class="grid" v-else><article v-for="(item,index) in visible" :key="item.url" :class="{selected:selected.has(item.url)}"><label><div class="image-wrap"><img :src="item.url" :alt="`页面图片 ${index+1}`"/><input type="checkbox" :checked="selected.has(item.url)" @change="toggle(item.url)" :disabled="busy" :aria-label="`选择图片 ${index+1}`"/><span class="number">{{String(index+1).padStart(2,'0')}}</span></div><div class="meta"><strong>图片 {{String(index+1).padStart(2,'0')}}</strong><span>{{item.width}} × {{item.height}}</span></div></label><button class="preview-button" :aria-label="`预览图片 ${index+1}`" @click="openPreview(item, $event)"><ZoomIn :size="16"/>预览大图</button></article></div>
     <footer><span>已过滤 {{entries.length-visible.length}} 张小图、加载失败或不匹配的图片</span><span>PNG 格式 · 自动编号 · 按需授权</span></footer>
   </main>
+  <dialog ref="dialog" class="lightbox" aria-labelledby="preview-title" aria-describedby="preview-details" @cancel.prevent="closePreview" @keydown="previewKey" @click="($event.target === $event.currentTarget) && closePreview()">
+    <div v-if="preview" class="preview-panel">
+      <header class="preview-header"><div><h2 id="preview-title">图片 {{String(previewIndex+1).padStart(2,'0')}}</h2><p id="preview-details">{{preview.width}} × {{preview.height}} 像素 · {{previewIndex+1}} / {{visible.length}}</p></div><button class="preview-close" aria-label="关闭预览" autofocus @click="closePreview"><X :size="22"/></button></header>
+      <div class="preview-stage"><img v-if="!previewFailed" :key="preview.url" :src="preview.url" :alt="`大图预览 ${previewIndex+1}`" @error="previewFailed=true"/><p v-else role="status">图片加载失败，请关闭预览后重试。</p></div>
+      <div class="preview-controls"><button aria-label="上一张" :disabled="visible.length<2" @click="movePreview(-1)"><ChevronLeft :size="20"/>上一张</button><span>← → 切换 · Esc 关闭</span><button aria-label="下一张" :disabled="visible.length<2" @click="movePreview(1)">下一张<ChevronRight :size="20"/></button></div>
+    </div>
+  </dialog>
 </template>

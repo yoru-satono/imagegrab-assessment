@@ -7,9 +7,20 @@
     "dev": "vite --config vite.site.config.js",
     "build:extension": "vite build --config vite.extension.config.js",
     "build:site": "vite build --config vite.site.config.js",
-    "build": "npm run build:extension && npm run build:site",
+    "build": "npm run build:extension && npm run package:extension && npm run build:site",
+    "package:extension": "node scripts/package-extension.mjs",
+    "test:e2e": "npm run build:extension && node tests/extension-e2e.mjs",
+    "test:site": "node tests/site-e2e.mjs",
     "test": "node --test tests/*.test.js"
   },
-  "dependencies": {"vue": "^3.5.22", "@lucide/vue": "latest"},
-  "devDependencies": {"vite": "^7.3.1", "@vitejs/plugin-vue": "^6.0.1", "@playwright/test": "^1.64.0"}
+  "dependencies": {
+    "@lucide/vue": "latest",
+    "vue": "^3.5.22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "fflate": "^0.8.3",
+    "vite": "^7.3.1"
+  }
 }
